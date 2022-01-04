@@ -79,12 +79,12 @@ public class SessionCheckPlugin implements Plugin
     }
     
     public void checkSessions() {
-        Log.info("Checking Sessions...");
 
         Collection<ClientSession> sessions = null;
         sessions = sessionManager.getSessions();
 
         if (sessions != null) {
+            Log.info("Checking Sessions...");
             int counter=0;
             for (ClientSession session : sessions) {
                 if (session == null)
@@ -93,17 +93,14 @@ public class SessionCheckPlugin implements Plugin
                 try {
                     session.getHostAddress();
                 } catch (Exception e) {
+                    Log.warn("Found invalid session on jid: {}",session.getAddress().toString());
                     counter++;
-                    if (counter>=XMPP_SESSIONCHECK_MINTORESTART.getValue())
-                    {
-                        Log.warn("Found enough invalid sessions to restart Connection Listener!");
-                        break;
-                    }
                 }
             }
 
             if (counter>=XMPP_SESSIONCHECK_MINTORESTART.getValue())
             {
+                Log.warn("Found {} invalid sessions",String.valueOf(counter));
                 new Thread(new Runnable() {
 
                     @Override
@@ -129,8 +126,10 @@ public class SessionCheckPlugin implements Plugin
                     }
                 });
             }
+            else {
+                Log.info("No invalid sessions found...");
+            }
         }
-        Log.info("done...");
     }
 
     @Override
