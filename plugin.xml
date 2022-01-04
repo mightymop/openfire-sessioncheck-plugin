@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin>
+    <class>org.igniterealtime.openfire.plugin.sessioncheck.SessionCheckPlugin</class>
+    <name>${project.name}</name>
+    <description>${project.description}</description>
+    <author>mightymop</author>
+    <version>${project.version}</version>
+    <date>10/18/2021</date>
+    <minServerVersion>4.4.0</minServerVersion>
+    <minJavaVersion>1.8</minJavaVersion>
+    <databaseVersion>1</databaseVersion>
+</plugin>
