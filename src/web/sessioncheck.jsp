@@ -38,7 +38,7 @@
     boolean update = request.getParameter("update") != null;
     boolean test = request.getParameter("test") != null;
 
-    boolean sessioncheckEnabled = ParamUtils.getParameter(request,"sessioncheckEnabled")!=null&&ParamUtils.getParameter(request,"avatarconversionEnabled").equals("on")?true:false;
+    boolean sessioncheckEnabled = ParamUtils.getParameter(request,"sessioncheckEnabled")!=null&&ParamUtils.getParameter(request,"sessioncheckEnabled").equals("on")?true:false;
     int sessioncheckInterval = ParamUtils.getParameter(request,"sessioncheckInterval")!=null&&ParamUtils.getParameter(request,"sessioncheckInterval").trim().length()>0?Integer.parseInt(ParamUtils.getParameter(request,"sessioncheckInterval")):60;
     int sessioncheckMin = ParamUtils.getParameter(request,"sessioncheckMin")!=null&&ParamUtils.getParameter(request,"sessioncheckMin").trim().length()>0?Integer.parseInt(ParamUtils.getParameter(request,"sessioncheckMin")):3;
 
