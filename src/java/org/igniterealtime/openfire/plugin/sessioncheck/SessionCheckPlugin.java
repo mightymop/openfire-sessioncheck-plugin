@@ -108,19 +108,8 @@ public class SessionCheckPlugin implements Plugin
                         Log.info("Cancel Worktimer");
                         cancelTimer();
 
-                        final ConnectionManagerImpl manager = (ConnectionManagerImpl) XMPPServer.getInstance().getConnectionManager();
-                        ConnectionType connectionType = ConnectionType.valueOf( "SOCKET_C2S" );
-                        final ConnectionListener listener = manager.getListener( connectionType, false );
+                        runRestartConnnectionListener();
 
-                        Log.info("Restart Connection Listener now");
-                        try {
-                            listener.enable( false );
-                            listener.enable( true );
-                        }
-                        catch (Exception e)
-                        {
-                            Log.error("Could not restart Connection Listener");
-                        }
                         Log.info("Restart Worktimer");
                         setTimer();
                     }
@@ -129,6 +118,33 @@ public class SessionCheckPlugin implements Plugin
             else {
                 Log.info("No invalid sessions found...");
             }
+        }
+    }
+
+    public static void runRestartConnnectionListener() {
+        final ConnectionManagerImpl manager = (ConnectionManagerImpl) XMPPServer.getInstance().getConnectionManager();
+        ConnectionType connectionType = ConnectionType.valueOf( "SOCKET_C2S" );
+        final ConnectionListener listenerPlain = manager.getListener( connectionType, false );
+        final ConnectionListener listenerSSLLegacy = manager.getListener( connectionType, true );
+
+        Log.info("Restart Connection Listener now");
+        try {
+            if (listenerPlain!=null&&listenerPlain.isEnabled())
+            {
+                listenerPlain.enable( false );
+                listenerPlain.enable( true );
+            }
+
+            if (listenerSSLLegacy!=null&&listenerSSLLegacy.isEnabled())
+            {
+                listenerSSLLegacy.enable( false );
+                listenerSSLLegacy.enable( true );
+            }
+
+        }
+        catch (Exception e)
+        {
+            Log.error("Could not restart Connection Listener");
         }
     }
 

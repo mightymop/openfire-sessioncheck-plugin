@@ -8,5 +8,11 @@
     <date>10/18/2021</date>
     <minServerVersion>4.4.0</minServerVersion>
     <minJavaVersion>1.8</minJavaVersion>
-    <databaseVersion>1</databaseVersion>
+    <adminconsole>
+        <tab id="tab-server">
+            <sidebar id="sidebar-server-settings">
+                <item id="server-sessioncheck" name="${sidebar.sessioncheck.name}" url="sessioncheck.jsp" description="${sidebar.sessioncheck.descr}"/>
+            </sidebar>
+        </tab>
+    </adminconsole>
 </plugin>
