@@ -2,6 +2,7 @@ package org.igniterealtime.openfire.plugin.sessioncheck;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -16,6 +17,8 @@ import org.jivesoftware.openfire.session.ClientSession;
 import org.jivesoftware.openfire.spi.ConnectionListener;
 import org.jivesoftware.openfire.spi.ConnectionManagerImpl;
 import org.jivesoftware.openfire.spi.ConnectionType;
+import org.jivesoftware.util.PropertyEventDispatcher;
+import org.jivesoftware.util.PropertyEventListener;
 import org.jivesoftware.util.SystemProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,12 +28,14 @@ import org.slf4j.LoggerFactory;
  *
  * @author 
  */
-public class SessionCheckPlugin implements Plugin
+public class SessionCheckPlugin implements Plugin, PropertyEventListener
 {
     private static final Logger Log = LoggerFactory.getLogger( SessionCheckPlugin.class );
 
     private SessionManager sessionManager = null;
     private Timer timer = null;
+    private Timer restartTimer = null;
+    private long lastChange = 0;
 
     public static final SystemProperty<Boolean> XMPP_SESSIONCHECK_ENABLED = SystemProperty.Builder.ofType(Boolean.class)
             .setKey("plugin.sessioncheck.enabled")
@@ -43,6 +48,13 @@ public class SessionCheckPlugin implements Plugin
             .setKey("plugin.sessioncheck.interval")
             .setPlugin( "sessioncheck" )
             .setDefaultValue(60)
+            .setDynamic(false)
+            .build();
+
+    public static final SystemProperty<Integer> XMPP_SESSIONCHECK_RESTARTINTERVAL = SystemProperty.Builder.ofType(Integer.class)
+            .setKey("plugin.sessioncheck.restartinterval")
+            .setPlugin( "sessioncheck" )
+            .setDefaultValue(-1)
             .setDynamic(false)
             .build();
 
@@ -62,25 +74,59 @@ public class SessionCheckPlugin implements Plugin
 
     private void setTimer() {
         cancelTimer();
-        if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
-        {
-            Log.debug("Set Timer for future sessions checks - first start in: 5mins, interval: {} seconds",String.valueOf(XMPP_SESSIONCHECK_INTERVAL.getValue()));
-        }
-        timer = new Timer(true);
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                try {
-                    if (XMPP_SESSIONCHECK_ENABLED.getValue())
-                        checkSessions();
-                } catch (Exception e) {
-                    Log.error("Unknown error while checking the sessions", e.getMessage(),e);
-                }
+        if (XMPP_SESSIONCHECK_ENABLED.getValue()) {
+            if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
+            {
+                Log.info("Set Timer for future sessions checks - first start in: 5mins, interval: {} seconds",String.valueOf(XMPP_SESSIONCHECK_INTERVAL.getValue()));
             }
-        }, 60*1000*5, XMPP_SESSIONCHECK_INTERVAL.getValue()*1000);
+            timer = new Timer(true);
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        checkSessions();
+                    } catch (Exception e) {
+                        Log.error("Unknown error while checking the sessions", e.getMessage(),e);
+                    }
+                }
+            }, 60*1000*5, XMPP_SESSIONCHECK_INTERVAL.getValue()*1000);
+        }else {
+            if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
+            {
+                Log.info("Session check timer is disabled");
+            }
+        }
     }
 
-    private void cancelTimer() {      
+    private void setRestartTimer() {
+        cancelRestartTimer();
+        if (XMPP_SESSIONCHECK_RESTARTINTERVAL.getValue()>0)
+        {
+            if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
+            {
+                Log.info("Set Restart Timer for auto restarting the Connection Listener - Interval {} mins", String.valueOf(XMPP_SESSIONCHECK_RESTARTINTERVAL.getValue()));
+            }
+            restartTimer = new Timer(true);
+            restartTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        runRestartConnnectionListener();
+                    } catch (Exception e) {
+                        Log.error("Unknown error while restarting the connection listeners", e.getMessage(),e);
+                    }
+                }
+            }, XMPP_SESSIONCHECK_RESTARTINTERVAL.getValue()*60*1000, XMPP_SESSIONCHECK_RESTARTINTERVAL.getValue()*60*1000);
+        }
+        else {
+            if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
+            {
+                Log.info("Restart timer is disabled (-1)");
+            }
+        }
+    }
+    
+    private void cancelTimer() {
         if (timer != null) {
             try {
                 if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
@@ -95,7 +141,23 @@ public class SessionCheckPlugin implements Plugin
         }
         timer = null;
     }
-    
+
+    private void cancelRestartTimer() {
+        if (restartTimer != null) {
+            try {
+                if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
+                {
+                    Log.debug("Cancel old running restart timer");
+                }
+                restartTimer.cancel();
+                restartTimer.purge();
+            } catch (Exception e) {
+                Log.error("Error while canceling the restarttimer...", e.getMessage(),e);
+            }
+        }
+        restartTimer = null;
+    }
+
     public void checkSessions() {
 
         Collection<ClientSession> sessions = null;
@@ -135,6 +197,7 @@ public class SessionCheckPlugin implements Plugin
                             Log.info("Cancel Worktimer");
                         }
                         cancelTimer();
+                        cancelRestartTimer();
 
                         runRestartConnnectionListener();
 
@@ -143,6 +206,7 @@ public class SessionCheckPlugin implements Plugin
                             Log.info("Restart Worktimer");
                         }
                         setTimer();
+                        setRestartTimer();
                     }
                 });
             }
@@ -231,6 +295,8 @@ public class SessionCheckPlugin implements Plugin
         sessionManager = SessionManager.getInstance();
         Log.info("Initialize SessionCheck Plugin enabled:"+XMPP_SESSIONCHECK_ENABLED.getDisplayValue());
         setTimer();
+        setRestartTimer();
+        PropertyEventDispatcher.addListener(this);
     }
 
     @Override
@@ -239,8 +305,46 @@ public class SessionCheckPlugin implements Plugin
         Log.info("Destroy SessionCheck Plugin");
         try {
             cancelTimer();
+            cancelRestartTimer();
         } catch (Exception e) {
         }
+        PropertyEventDispatcher.removeListener(this);
+    }
+
+    @Override
+    public void propertySet(String property, Map<String, Object> params) {
+        if (property.equals("plugin.sessioncheck.enabled"))
+        {
+            setTimer();
+        }
+        if (property.equals("plugin.sessioncheck.enabled"))
+        {
+            setRestartTimer();
+        }
+    }
+
+    @Override
+    public void propertyDeleted(String property, Map<String, Object> params) {
+        if (property.equals("plugin.sessioncheck.enabled"))
+        {
+            cancelTimer();
+        }
+        if (property.equals("plugin.sessioncheck.enabled"))
+        {
+            cancelRestartTimer();
+        }
+    }
+
+    @Override
+    public void xmlPropertySet(String property, Map<String, Object> params) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void xmlPropertyDeleted(String property, Map<String, Object> params) {
+        // TODO Auto-generated method stub
+        
     }
 
 }
