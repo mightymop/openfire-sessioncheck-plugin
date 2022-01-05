@@ -2,9 +2,12 @@ package org.igniterealtime.openfire.plugin.sessioncheck;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.jivesoftware.openfire.Connection.ClientAuth;
+import org.jivesoftware.openfire.Connection.TLSPolicy;
 import org.jivesoftware.openfire.SessionManager;
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.openfire.container.Plugin;
@@ -166,8 +169,25 @@ public class SessionCheckPlugin implements Plugin
                 {
                     Log.info("Restart plain listener");
                 }
+                int port = listenerPlain.getPort();
+                TLSPolicy policy = listenerPlain.getTLSPolicy();
+                ClientAuth auth = listenerPlain.getClientAuth();
+                Set<String> encSuite = listenerPlain.getEncryptionCipherSuites();
+                Set<String> encProtocol = listenerPlain.getEncryptionProtocols();
+                boolean acceptSelfSigned = listenerPlain.acceptSelfSignedCertificates();
+                boolean verifyValidity = listenerPlain.verifyCertificateValidity();
+
                 listenerPlain.enable( false );
                 listenerPlain.enable( true );
+
+                listenerPlain.setPort( port );
+                listenerPlain.setTLSPolicy( policy );
+                listenerPlain.setClientAuth( auth );
+                listenerPlain.setEncryptionProtocols( encProtocol );
+                listenerPlain.setEncryptionCipherSuites( encSuite );
+                listenerPlain.setAcceptSelfSignedCertificates( acceptSelfSigned );
+                listenerPlain.setVerifyCertificateValidity( verifyValidity );
+
             }
 
             if (listenerSSLLegacy!=null&&listenerSSLLegacy.isEnabled())
@@ -176,8 +196,25 @@ public class SessionCheckPlugin implements Plugin
                 {
                     Log.info("Restart legacy ssl listener");
                 }
+                int port = listenerSSLLegacy.getPort();
+                TLSPolicy policy = listenerSSLLegacy.getTLSPolicy();
+                ClientAuth auth = listenerSSLLegacy.getClientAuth();
+                Set<String> encSuite = listenerSSLLegacy.getEncryptionCipherSuites();
+                Set<String> encProtocol = listenerSSLLegacy.getEncryptionProtocols();
+                boolean acceptSelfSigned = listenerSSLLegacy.acceptSelfSignedCertificates();
+                boolean verifyValidity = listenerSSLLegacy.verifyCertificateValidity();
+
                 listenerSSLLegacy.enable( false );
                 listenerSSLLegacy.enable( true );
+
+                listenerSSLLegacy.setPort( port );
+                listenerSSLLegacy.setTLSPolicy( policy );
+                listenerSSLLegacy.setClientAuth( auth );
+                listenerSSLLegacy.setEncryptionProtocols( encProtocol );
+                listenerSSLLegacy.setEncryptionCipherSuites( encSuite );
+                listenerSSLLegacy.setAcceptSelfSignedCertificates( acceptSelfSigned );
+                listenerSSLLegacy.setVerifyCertificateValidity( verifyValidity );
+
             }
 
         }
