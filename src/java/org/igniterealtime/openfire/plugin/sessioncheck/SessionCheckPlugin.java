@@ -49,9 +49,20 @@ public class SessionCheckPlugin implements Plugin
             .setDefaultValue(3)
             .setDynamic(true)
             .build();
+    
+    public static final SystemProperty<Boolean> XMPP_SESSIONCHECK_DEBUGLOGGING = SystemProperty.Builder.ofType(Boolean.class)
+            .setKey("plugin.sessioncheck.debuglog")
+            .setPlugin( "sessioncheck" )
+            .setDefaultValue(false)
+            .setDynamic(true)
+            .build();
 
     private void setTimer() {
         cancelTimer();
+        if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
+        {
+            Log.debug("Set Timer for future sessions checks - first start in: 5mins, interval: {} seconds",String.valueOf(XMPP_SESSIONCHECK_INTERVAL.getValue()));
+        }
         timer = new Timer(true);
         timer.schedule(new TimerTask() {
             @Override
@@ -60,7 +71,7 @@ public class SessionCheckPlugin implements Plugin
                     if (XMPP_SESSIONCHECK_ENABLED.getValue())
                         checkSessions();
                 } catch (Exception e) {
-                    Log.error("FEHLER BEIM SETZEN DES TIMERS DES SESSIONKILLERPLUGINS", e.fillInStackTrace());
+                    Log.error("Unknown error while checking the sessions", e.getMessage(),e);
                 }
             }
         }, 60*1000*5, XMPP_SESSIONCHECK_INTERVAL.getValue()*1000);
@@ -69,10 +80,14 @@ public class SessionCheckPlugin implements Plugin
     private void cancelTimer() {      
         if (timer != null) {
             try {
+                if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
+                {
+                    Log.debug("Cancel old running sessioncheck timer");
+                }
                 timer.cancel();
                 timer.purge();
             } catch (Exception e) {
-                Log.warn("Fehler beim Stoppen des Timers...", e.fillInStackTrace());
+                Log.error("Error while canceling the timer...", e.getMessage(),e);
             }
         }
         timer = null;
@@ -84,13 +99,20 @@ public class SessionCheckPlugin implements Plugin
         sessions = sessionManager.getSessions();
 
         if (sessions != null) {
-            Log.info("Checking Sessions...");
+            if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
+            {
+                Log.info("Start sessioncheck");
+            }
             int counter=0;
             for (ClientSession session : sessions) {
                 if (session == null)
                     continue;
 
                 try {
+                    if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
+                    {
+                        Log.debug("Check session with jid {}",session.getAddress().toString());
+                    }
                     session.getHostAddress();
                 } catch (Exception e) {
                     Log.warn("Found invalid session on jid: {}",session.getAddress().toString());
@@ -105,18 +127,27 @@ public class SessionCheckPlugin implements Plugin
 
                     @Override
                     public void run() {
-                        Log.info("Cancel Worktimer");
+                        if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
+                        {
+                            Log.info("Cancel Worktimer");
+                        }
                         cancelTimer();
 
                         runRestartConnnectionListener();
 
-                        Log.info("Restart Worktimer");
+                        if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
+                        {
+                            Log.info("Restart Worktimer");
+                        }
                         setTimer();
                     }
                 });
             }
             else {
-                Log.info("No invalid sessions found...");
+                if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
+                {
+                    Log.info("No invalid sessions found...");
+                }
             }
         }
     }
@@ -131,12 +162,20 @@ public class SessionCheckPlugin implements Plugin
         try {
             if (listenerPlain!=null&&listenerPlain.isEnabled())
             {
+                if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
+                {
+                    Log.info("Restart plain listener");
+                }
                 listenerPlain.enable( false );
                 listenerPlain.enable( true );
             }
 
             if (listenerSSLLegacy!=null&&listenerSSLLegacy.isEnabled())
             {
+                if (XMPP_SESSIONCHECK_DEBUGLOGGING.getValue())
+                {
+                    Log.info("Restart legacy ssl listener");
+                }
                 listenerSSLLegacy.enable( false );
                 listenerSSLLegacy.enable( true );
             }
@@ -144,7 +183,7 @@ public class SessionCheckPlugin implements Plugin
         }
         catch (Exception e)
         {
-            Log.error("Could not restart Connection Listener");
+            Log.error("Could not restart Connection Listener",e.getMessage(),e);
         }
     }
 
