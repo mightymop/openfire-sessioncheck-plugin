@@ -41,6 +41,7 @@
     boolean sessioncheckEnabled = ParamUtils.getParameter(request,"sessioncheckEnabled")!=null&&ParamUtils.getParameter(request,"sessioncheckEnabled").equals("on")?true:false;
     int sessioncheckInterval = ParamUtils.getParameter(request,"sessioncheckInterval")!=null&&ParamUtils.getParameter(request,"sessioncheckInterval").trim().length()>0?Integer.parseInt(ParamUtils.getParameter(request,"sessioncheckInterval")):60;
     int sessioncheckMin = ParamUtils.getParameter(request,"sessioncheckMin")!=null&&ParamUtils.getParameter(request,"sessioncheckMin").trim().length()>0?Integer.parseInt(ParamUtils.getParameter(request,"sessioncheckMin")):3;
+    boolean debuglogEnabled = ParamUtils.getParameter(request,"debuglogEnabled")!=null&&ParamUtils.getParameter(request,"debuglogEnabled").equals("on")?true:false;
 
     Cookie csrfCookie = CookieUtils.getCookie(request, "csrf");
     String csrfParam = ParamUtils.getParameter(request, "csrf");
@@ -58,6 +59,7 @@
         SessionCheckPlugin.XMPP_SESSIONCHECK_ENABLED.setValue(sessioncheckEnabled);
         SessionCheckPlugin.XMPP_SESSIONCHECK_INTERVAL.setValue(sessioncheckInterval);
         SessionCheckPlugin.XMPP_SESSIONCHECK_MINTORESTART.setValue(sessioncheckMin);
+        SessionCheckPlugin.XMPP_SESSIONCHECK_DEBUGLOGGING.setValue(debuglogEnabled);
     %>
     <div class="jive-success">
     <table cellpadding="0" cellspacing="0" border="0">
@@ -94,6 +96,7 @@
     sessioncheckEnabled = SessionCheckPlugin.XMPP_SESSIONCHECK_ENABLED.getValue();
     sessioncheckInterval = SessionCheckPlugin.XMPP_SESSIONCHECK_INTERVAL.getValue();
     sessioncheckMin = SessionCheckPlugin.XMPP_SESSIONCHECK_MINTORESTART.getValue();
+    debuglogEnabled = SessionCheckPlugin.XMPP_SESSIONCHECK_DEBUGLOGGING.getValue();
 
 %>
 
@@ -113,6 +116,16 @@
                 <td width="99%">
                     <label for="sessioncheckEnabled">
                      <b><fmt:message key="sessioncheck.settings.enable" /></b>
+                    </label>
+                </td>
+            </tr>
+            <tr valign="top">
+                <td width="1%" nowrap>
+                    <input type="checkbox" name="debuglogEnabled" id="debuglogEnabled"  <%=(debuglogEnabled?"checked" : "")%>>
+                </td>
+                <td width="99%">
+                    <label for="debuglogEnabled">
+                     <b><fmt:message key="sessioncheck.settings.debuglog" /></b>
                     </label>
                 </td>
             </tr>
